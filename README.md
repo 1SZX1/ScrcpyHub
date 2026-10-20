@@ -44,7 +44,7 @@
 
 ## 📥 下载安装
 
-前往 [**GitHub Releases**](https://github.com/) 下载最新版 **`ScrcpyHub-macOS-arm64.dmg`**：
+前往 [**GitHub Releases**](https://github.com/1SZX1/ScrcpyHub/releases) 下载最新版 **`ScrcpyHub-macOS-arm64.dmg`**：
 
 1. 双击打开下载好的 `.dmg` 镜像；
 2. 将 **ScrcpyHub** 拖移到 **Applications**（应用程序）文件夹即可。
@@ -67,7 +67,7 @@
 
 ```bash
 # 1. 克隆本仓库
-git clone https://github.com/<你的用户名>/ScrcpyHub.git
+git clone https://github.com/1SZX1/ScrcpyHub.git
 cd ScrcpyHub
 
 # 2. 一键编译并生成 DMG 与 ZIP 安装包 (自动拉取工具包并编译)

@@ -44,7 +44,7 @@
 
 ## 📥 Download & Installation
 
-Download the latest **`ScrcpyHub-macOS-arm64.dmg`** from [**GitHub Releases**](https://github.com/):
+Download the latest **`ScrcpyHub-macOS-arm64.dmg`** from [**GitHub Releases**](https://github.com/1SZX1/ScrcpyHub/releases):
 
 1. Open the downloaded `.dmg` image;
 2. Drag **ScrcpyHub** into your **Applications** folder.
@@ -67,7 +67,7 @@ To build or contribute locally:
 
 ```bash
 # 1. Clone this repository
-git clone https://github.com/<your-username>/ScrcpyHub.git
+git clone https://github.com/1SZX1/ScrcpyHub.git
 cd ScrcpyHub
 
 # 2. Compile and package DMG & ZIP (auto-downloads tools and builds Swift binary)
