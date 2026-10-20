@@ -20,6 +20,10 @@
   <a href="README.md">简体中文</a> | <b>English</b>
 </p>
 
+<p align="center">
+  <img src="docs/assets/screenshot.png" width="92%" alt="ScrcpyHub Screenshot" />
+</p>
+
 ---
 
 ## ✨ Features

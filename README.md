@@ -20,6 +20,10 @@
   <b>简体中文</b> | <a href="README_EN.md">English</a>
 </p>
 
+<p align="center">
+  <img src="docs/assets/screenshot.png" width="92%" alt="ScrcpyHub Screenshot" />
+</p>
+
 ---
 
 ## ✨ 功能特性
