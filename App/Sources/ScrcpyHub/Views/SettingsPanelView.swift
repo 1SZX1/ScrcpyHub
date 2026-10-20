@@ -1,6 +1,7 @@
 import SwiftUI
 
 public struct SettingsPanelView: View {
+    @ObservedObject private var langManager = LanguageManager.shared
     @Binding public var config: ScrcpyConfig
     public let activeDevice: Device?
     
@@ -21,7 +22,7 @@ public struct SettingsPanelView: View {
                 HStack(spacing: 8) {
                     Image(systemName: "wand.and.stars")
                         .foregroundColor(.accentColor)
-                    Text("快速场景预设")
+                    Text(t("quick_presets"))
                         .font(.headline)
                     
                     Spacer()
@@ -30,34 +31,34 @@ public struct SettingsPanelView: View {
                     Button(action: { isShowingSavePresetSheet = true }) {
                         HStack(spacing: 4) {
                             Image(systemName: "plus.circle.fill")
-                            Text("保存为预设")
+                            Text(t("save_as_preset"))
                         }
                         .font(.system(size: 11, weight: .medium))
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
-                    .help("将当前调整好的各项参数保存为一个新的快捷预设方案")
+                    .help(t("save_as_preset_help"))
                     
                     // 保存为全局默认配置
                     Button(action: {
                         config.saveAsDefault()
-                        showToast("已将当前参数保存为启动默认配置！")
+                        showToast(t("toast_saved_default"))
                     }) {
                         HStack(spacing: 4) {
                             Image(systemName: "pin.fill")
-                            Text("设为默认")
+                            Text(t("set_as_default"))
                         }
                         .font(.system(size: 11, weight: .medium))
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
-                    .help("将当前参数保存为全局默认配置，下次打开软件或新设备自动采用")
+                    .help(t("set_as_default_help"))
                     
                     // 更多设置（恢复出厂）
                     Menu {
-                        Button("恢复出厂默认配置") {
+                        Button(t("restore_factory_default")) {
                             config = ScrcpyConfig.resetToFactoryDefault()
-                            showToast("已恢复出厂初始配置！")
+                            showToast(t("toast_restored_factory"))
                         }
                     } label: {
                         Image(systemName: "ellipsis.circle")
@@ -66,7 +67,7 @@ public struct SettingsPanelView: View {
                     }
                     .menuStyle(.borderlessButton)
                     .menuIndicator(.hidden)
-                    .help("配置选项（恢复出厂配置）")
+                    .help(t("config_options"))
                 }
                 
                 if let toast = toastMessage {
@@ -104,10 +105,10 @@ public struct SettingsPanelView: View {
             
             // 分类选项卡
             Picker("", selection: $selectedCategory) {
-                Text("画面与性能").tag(0)
-                Text("运行与显示").tag(1)
-                Text("声音与录制").tag(2)
-                Text("高级与指令").tag(3)
+                Text(t("tab_video_perf")).tag(0)
+                Text(t("tab_run_display")).tag(1)
+                Text(t("tab_audio_record")).tag(2)
+                Text(t("tab_advanced_cli")).tag(3)
             }
             .pickerStyle(.segmented)
             .padding(12)
@@ -138,15 +139,15 @@ public struct SettingsPanelView: View {
         VStack(alignment: .leading, spacing: 14) {
             // 分辨率
             HStack {
-                Label("最大分辨率限制", systemImage: "arrow.up.left.and.down.right.and.arrow.up.right.and.down.left")
+                Label(t("max_size_limit"), systemImage: "arrow.up.left.and.down.right.and.arrow.up.right.and.down.left")
                     .frame(width: 160, alignment: .leading)
                 
                 Picker("", selection: $config.maxSize) {
-                    Text("原始分辨率 (不限制)").tag(0)
-                    Text("720P (流畅省资源)").tag(720)
-                    Text("1080P (高清推荐)").tag(1080)
-                    Text("1440P (2K)").tag(1440)
-                    Text("1920P (高分屏)").tag(1920)
+                    Text(t("res_native")).tag(0)
+                    Text(t("res_720")).tag(720)
+                    Text(t("res_1080")).tag(1080)
+                    Text(t("res_1440")).tag(1440)
+                    Text(t("res_1920")).tag(1920)
                 }
                 .pickerStyle(.menu)
             }
@@ -154,7 +155,7 @@ public struct SettingsPanelView: View {
             // 码率调节
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
-                    Label("视频码率", systemImage: "gauge.with.needle")
+                    Label(t("video_bitrate"), systemImage: "gauge.with.needle")
                         .frame(width: 160, alignment: .leading)
                     
                     Slider(value: Binding(
@@ -166,7 +167,7 @@ public struct SettingsPanelView: View {
                         .font(.system(size: 12, design: .monospaced))
                         .frame(width: 65, alignment: .trailing)
                 }
-                Text("码率越高画面越细腻，无线投屏建议设为 6~10 Mbps 避免延迟。")
+                Text(t("bitrate_hint"))
                     .font(.caption2)
                     .foregroundColor(.secondary)
                     .padding(.leading, 164)
@@ -174,42 +175,42 @@ public struct SettingsPanelView: View {
             
             // 帧率上限
             HStack {
-                Label("最大帧率上限", systemImage: "timer")
+                Label(t("max_fps_limit"), systemImage: "timer")
                     .frame(width: 160, alignment: .leading)
                 
                 Picker("", selection: $config.maxFps) {
-                    Text("无限制 (按手机刷新率)").tag(0)
-                    Text("30 FPS (节能)").tag(30)
-                    Text("60 FPS (流畅)").tag(60)
-                    Text("90 FPS (高刷)").tag(90)
-                    Text("120 FPS (电竞高刷)").tag(120)
+                    Text(t("fps_unlimited")).tag(0)
+                    Text(t("fps_30")).tag(30)
+                    Text(t("fps_60")).tag(60)
+                    Text(t("fps_90")).tag(90)
+                    Text(t("fps_120")).tag(120)
                 }
                 .pickerStyle(.menu)
             }
             
             // 编解码器
             HStack {
-                Label("视频编码格式", systemImage: "film")
+                Label(t("video_codec"), systemImage: "film")
                     .frame(width: 160, alignment: .leading)
                 
                 Picker("", selection: $config.videoCodec) {
-                    Text("H.264 (兼容性最佳)").tag("h264")
-                    Text("H.265 / HEVC (高压缩比/省带宽)").tag("h265")
-                    Text("AV1 (下一代高效编码)").tag("av1")
+                    Text(t("codec_h264")).tag("h264")
+                    Text(t("codec_h265")).tag("h265")
+                    Text(t("codec_av1")).tag("av1")
                 }
                 .pickerStyle(.menu)
             }
             
             // 缓冲延时
             HStack {
-                Label("画面渲染缓冲", systemImage: "water.waves")
+                Label(t("display_buffer"), systemImage: "water.waves")
                     .frame(width: 160, alignment: .leading)
                 
                 Picker("", selection: $config.displayBufferMs) {
-                    Text("0 ms (极速零延迟)").tag(0)
-                    Text("20 ms (微缓冲)").tag(20)
-                    Text("50 ms (无线抗抖动推荐)").tag(50)
-                    Text("100 ms (弱网防卡顿)").tag(100)
+                    Text(t("buffer_0")).tag(0)
+                    Text(t("buffer_20")).tag(20)
+                    Text(t("buffer_50")).tag(50)
+                    Text(t("buffer_100")).tag(100)
                 }
                 .pickerStyle(.menu)
             }
@@ -221,9 +222,9 @@ public struct SettingsPanelView: View {
         VStack(alignment: .leading, spacing: 14) {
             Toggle(isOn: $config.turnScreenOff) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("熄屏投屏 (--turn-screen-off)")
+                    Text(t("turn_screen_off"))
                         .font(.system(size: 13, weight: .medium))
-                    Text("投屏开始后手机屏幕自动熄灭，电脑仍可全功能触控操作，显著降低手机发热与耗电。")
+                    Text(t("turn_screen_off_desc"))
                         .font(.caption2)
                         .foregroundColor(.secondary)
                 }
@@ -231,9 +232,9 @@ public struct SettingsPanelView: View {
             
             Toggle(isOn: $config.stayAwake) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("保持设备常亮 (--stay-awake)")
+                    Text(t("stay_awake"))
                         .font(.system(size: 13, weight: .medium))
-                    Text("连接投屏期间阻止手机自动休眠锁定。")
+                    Text(t("stay_awake_desc"))
                         .font(.caption2)
                         .foregroundColor(.secondary)
                 }
@@ -241,38 +242,38 @@ public struct SettingsPanelView: View {
             
             Toggle(isOn: $config.alwaysOnTop) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("窗口始终置顶 (--always-on-top)")
+                    Text(t("always_on_top"))
                         .font(.system(size: 13, weight: .medium))
-                    Text("投屏窗口将置于其他所有 macOS 应用程序窗口上方。")
+                    Text(t("always_on_top_desc"))
                         .font(.caption2)
                         .foregroundColor(.secondary)
                 }
             }
             
             Toggle(isOn: $config.fullscreen) {
-                Text("全屏启动投屏 (--fullscreen)")
+                Text(t("fullscreen"))
                     .font(.system(size: 13, weight: .medium))
             }
             
             Toggle(isOn: $config.showTouches) {
-                Text("在手机上高亮显示物理触摸圆点 (--show-touches)")
+                Text(t("show_touches"))
                     .font(.system(size: 13, weight: .medium))
             }
             
             Toggle(isOn: $config.readOnly) {
-                Text("只读模式 / 禁用控制 (--no-control)")
+                Text(t("read_only"))
                     .font(.system(size: 13, weight: .medium))
             }
             
             HStack {
-                Label("画面旋转方向", systemImage: "rotate.right")
+                Label(t("display_orientation"), systemImage: "rotate.right")
                     .frame(width: 160, alignment: .leading)
                 
                 Picker("", selection: $config.displayOrientation) {
-                    Text("跟随手机传感器 (默认)").tag(0)
-                    Text("顺时针旋转 90°").tag(90)
-                    Text("旋转 180° (倒置)").tag(180)
-                    Text("顺时针旋转 270°").tag(270)
+                    Text(t("orient_sensor")).tag(0)
+                    Text(t("orient_90")).tag(90)
+                    Text(t("orient_180")).tag(180)
+                    Text(t("orient_270")).tag(270)
                 }
                 .pickerStyle(.menu)
             }
@@ -285,9 +286,9 @@ public struct SettingsPanelView: View {
             // 音频开关
             Toggle(isOn: $config.audioEnabled) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("开启音频实时同步")
+                    Text(t("audio_sync"))
                         .font(.system(size: 13, weight: .medium))
-                    Text("将手机应用及游戏声音实时转发至 Mac 扬声器播放 (要求 Android 11+)。")
+                    Text(t("audio_sync_desc"))
                         .font(.caption2)
                         .foregroundColor(.secondary)
                 }
@@ -295,13 +296,13 @@ public struct SettingsPanelView: View {
             
             if config.audioEnabled {
                 HStack {
-                    Label("音频编码格式", systemImage: "waveform")
+                    Label(t("audio_codec"), systemImage: "waveform")
                         .frame(width: 160, alignment: .leading)
                     
                     Picker("", selection: $config.audioCodec) {
-                        Text("Opus (默认/低延迟)").tag("opus")
-                        Text("AAC (高兼容)").tag("aac")
-                        Text("RAW (无损 PCM)").tag("raw")
+                        Text(t("codec_opus")).tag("opus")
+                        Text(t("codec_aac")).tag("aac")
+                        Text(t("codec_raw")).tag("raw")
                     }
                     .pickerStyle(.menu)
                 }
@@ -312,9 +313,9 @@ public struct SettingsPanelView: View {
             // 录屏设置
             Toggle(isOn: $config.recordEnabled) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("启动投屏时自动录制到本地文件 (--record)")
+                    Text(t("record_enabled"))
                         .font(.system(size: 13, weight: .medium))
-                    Text("将手机画面以 mp4 格式同步存盘。")
+                    Text(t("record_desc"))
                         .font(.caption2)
                         .foregroundColor(.secondary)
                 }
@@ -322,10 +323,10 @@ public struct SettingsPanelView: View {
             
             if config.recordEnabled {
                 HStack {
-                    TextField("录像保存文件路径 (如 ~/Downloads/record.mp4)", text: $config.recordPath)
+                    TextField(t("record_path_placeholder"), text: $config.recordPath)
                         .textFieldStyle(.roundedBorder)
                     
-                    Button("选择位置...") {
+                    Button(t("choose_location")) {
                         selectSaveRecordPath()
                     }
                 }
@@ -336,13 +337,13 @@ public struct SettingsPanelView: View {
     // MARK: - 高级与指令
     private var advancedSettingsView: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("自定义附加命令行参数 (CLI Flags)")
+            Text(t("custom_cli_flags"))
                 .font(.system(size: 13, weight: .semibold))
             
-            TextField("例如: --window-x 100 --window-y 100 --prefer-text", text: $config.customArgs)
+            TextField(t("custom_flags_placeholder"), text: $config.customArgs)
                 .textFieldStyle(.roundedBorder)
             
-            Text("当前配置生成的完整启动命令预览：")
+            Text(t("cmd_preview"))
                 .font(.system(size: 12, weight: .medium))
                 .foregroundColor(.secondary)
                 .padding(.top, 4)
@@ -390,6 +391,7 @@ public struct SettingsPanelView: View {
 }
 
 struct PresetCard: View {
+    @ObservedObject private var langManager = LanguageManager.shared
     let preset: PresetProfile
     let isCurrent: Bool
     let onApply: () -> Void
@@ -405,7 +407,7 @@ struct PresetCard: View {
                         .font(.system(size: 12, weight: .bold))
                         .foregroundColor(isCurrent ? .white : .accentColor)
                     
-                    Text(preset.title)
+                    Text(preset.localizedTitle)
                         .font(.system(size: 11, weight: .bold))
                         .foregroundColor(isCurrent ? .white : .primary)
                         .lineLimit(1)
@@ -419,11 +421,11 @@ struct PresetCard: View {
                                 .foregroundColor(isCurrent ? .white.opacity(0.8) : .secondary)
                         }
                         .buttonStyle(.plain)
-                        .help("删除此自定义预设")
+                        .help(t("delete_custom_preset"))
                     }
                 }
                 
-                Text(preset.subtitle)
+                Text(preset.localizedSubtitle)
                     .font(.system(size: 9))
                     .foregroundColor(isCurrent ? .white.opacity(0.85) : .secondary)
                     .lineLimit(1)
@@ -443,7 +445,7 @@ struct PresetCard: View {
         .contextMenu {
             if preset.isCustom {
                 Button(role: .destructive, action: onDelete) {
-                    Label("删除预设", systemImage: "trash")
+                    Label(t("delete_preset"), systemImage: "trash")
                 }
             }
         }
@@ -451,6 +453,7 @@ struct PresetCard: View {
 }
 
 struct SavePresetSheet: View {
+    @ObservedObject private var langManager = LanguageManager.shared
     let currentConfig: ScrcpyConfig
     @Environment(\.dismiss) private var dismiss
     
@@ -469,7 +472,7 @@ struct SavePresetSheet: View {
                 Image(systemName: "plus.circle.fill")
                     .foregroundColor(.accentColor)
                     .font(.title3)
-                Text("保存当前配置为新预设")
+                Text(t("save_preset_title"))
                     .font(.headline)
                 Spacer()
                 Button(action: { dismiss() }) {
@@ -483,23 +486,23 @@ struct SavePresetSheet: View {
             
             VStack(alignment: .leading, spacing: 12) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("预设名称：")
+                    Text(t("preset_name_label"))
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    TextField("例如: 我的iPad扩展 / 极速高帧游戏", text: $presetTitle)
+                    TextField(t("preset_name_placeholder"), text: $presetTitle)
                         .textFieldStyle(.roundedBorder)
                 }
                 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("简短描述（留空将自动根据参数生成）：")
+                    Text(t("preset_desc_label"))
                         .font(.caption)
                         .foregroundColor(.secondary)
-                    TextField("例如: 1080P · 16Mbps · 60FPS", text: $presetSubtitle)
+                    TextField(t("preset_desc_placeholder"), text: $presetSubtitle)
                         .textFieldStyle(.roundedBorder)
                 }
                 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("预设图标：")
+                    Text(t("preset_icon_label"))
                         .font(.caption)
                         .foregroundColor(.secondary)
                     
@@ -520,7 +523,7 @@ struct SavePresetSheet: View {
                 
                 // 参数摘要卡片
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("包含的关键参数：")
+                    Text(t("key_parameters_summary"))
                         .font(.system(size: 10, weight: .bold))
                         .foregroundColor(.secondary)
                     Text("分辨率: \(currentConfig.maxSize == 0 ? "原始" : "\(currentConfig.maxSize)P") | 码率: \(currentConfig.bitRateMbps)M | 帧率: \(currentConfig.maxFps == 0 ? "不限" : "\(currentConfig.maxFps)FPS") | 编码: \(currentConfig.videoCodec.uppercased()) | 息屏: \(currentConfig.turnScreenOff ? "开启" : "关闭")")
@@ -534,12 +537,12 @@ struct SavePresetSheet: View {
             }
             
             HStack {
-                Button("取消") { dismiss() }
+                Button(t("cancel")) { dismiss() }
                     .buttonStyle(.bordered)
                 
                 Spacer()
                 
-                Button("保存为新预设") {
+                Button(t("save_as_new_preset")) {
                     PresetManager.shared.saveCustomPreset(
                         title: presetTitle,
                         subtitle: presetSubtitle,

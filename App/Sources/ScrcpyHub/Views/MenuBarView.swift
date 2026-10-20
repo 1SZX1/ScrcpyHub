@@ -3,6 +3,7 @@ import AppKit
 
 public struct MenuBarView: View {
     @Environment(\.openWindow) private var openWindow
+    @ObservedObject private var langManager = LanguageManager.shared
     @ObservedObject private var adbService = ADBService.shared
     @ObservedObject private var processManager = ProcessManager.shared
     
@@ -11,9 +12,9 @@ public struct MenuBarView: View {
     public var body: some View {
         // 在线设备列表与快速启停
         if adbService.devices.isEmpty {
-            Text("未检测到 Android 设备")
+            Text(t("menubar_no_devices"))
         } else {
-            Section("在线设备 (\(adbService.devices.count))") {
+            Section("\(t("menubar_online_devices")) (\(adbService.devices.count))") {
                 ForEach(adbService.devices) { dev in
                     Button {
                         if dev.isMirroring {
@@ -23,9 +24,9 @@ public struct MenuBarView: View {
                         }
                     } label: {
                         if dev.isMirroring {
-                            Label("停止投屏: \(dev.displayName)", systemImage: "stop.circle.fill")
+                            Label("\(t("menubar_stop_mirror"))\(dev.displayName)", systemImage: "stop.circle.fill")
                         } else {
-                            Label("启动投屏: \(dev.displayName)", systemImage: "play.circle.fill")
+                            Label("\(t("menubar_start_mirror"))\(dev.displayName)", systemImage: "play.circle.fill")
                         }
                     }
                     .disabled(!dev.state.isUsable)
@@ -39,16 +40,36 @@ public struct MenuBarView: View {
         Button {
             openMainWindow()
         } label: {
-            Label("打开主控制面板", systemImage: "macwindow")
+            Label(t("menubar_open_console"), systemImage: "macwindow")
         }
         .keyboardShortcut("o", modifiers: [.command])
         
         Button {
             adbService.refreshDevices(isManual: true)
         } label: {
-            Label("刷新设备列表", systemImage: "arrow.clockwise")
+            Label(t("menubar_refresh"), systemImage: "arrow.clockwise")
         }
         .keyboardShortcut("r", modifiers: [.command])
+        
+        Divider()
+        
+        // 界面语言快速切换
+        Menu {
+            ForEach(AppLanguage.allCases) { lang in
+                Button {
+                    langManager.selectedLanguage = lang
+                } label: {
+                    HStack {
+                        Text(lang.displayName)
+                        if langManager.selectedLanguage == lang {
+                            Image(systemName: "checkmark")
+                        }
+                    }
+                }
+            }
+        } label: {
+            Label(t("menubar_language"), systemImage: "globe")
+        }
         
         Divider()
         
@@ -57,7 +78,7 @@ public struct MenuBarView: View {
             processManager.stopAll()
             NSApplication.shared.terminate(nil)
         } label: {
-            Label("退出 ScrcpyHub", systemImage: "power")
+            Label(t("menubar_quit"), systemImage: "power")
         }
         .keyboardShortcut("q", modifiers: [.command])
     }

@@ -1,6 +1,7 @@
 import SwiftUI
 
 public struct MainView: View {
+    @ObservedObject private var langManager = LanguageManager.shared
     @StateObject private var adbService = ADBService.shared
     @StateObject private var processManager = ProcessManager.shared
     
@@ -18,9 +19,9 @@ public struct MainView: View {
                 // 顶部工具栏
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("已连接设备")
+                        Text(t("connected_devices"))
                             .font(.system(size: 13, weight: .bold))
-                        Text("\(adbService.devices.count) 台设备在线")
+                        Text("\(adbService.devices.count) \(t("devices_online_count"))")
                             .font(.system(size: 10))
                             .foregroundColor(.secondary)
                     }
@@ -33,7 +34,7 @@ public struct MainView: View {
                             .font(.system(size: 13))
                     }
                     .buttonStyle(.plain)
-                    .help("无线 ADB 连接向导")
+                    .help(t("wireless_adb_wizard"))
                     
                     // 手动刷新
                     Button(action: { adbService.refreshDevices(isManual: true) }) {
@@ -43,7 +44,7 @@ public struct MainView: View {
                             .animation(adbService.isRefreshing ? Animation.linear(duration: 1).repeatForever(autoreverses: false) : .default, value: adbService.isRefreshing)
                     }
                     .buttonStyle(.plain)
-                    .help("刷新设备列表")
+                    .help(t("refresh_device_list"))
                 }
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
@@ -75,7 +76,7 @@ public struct MainView: View {
                                 HStack(spacing: 6) {
                                     Image(systemName: "wifi.badge.plus")
                                         .font(.system(size: 13, weight: .medium))
-                                    Text("连接新无线设备...")
+                                    Text(t("connect_new_wireless"))
                                         .font(.system(size: 12, weight: .medium))
                                 }
                                 .foregroundColor(.accentColor)
@@ -108,7 +109,7 @@ public struct MainView: View {
                         }) {
                             HStack(spacing: 4) {
                                 Image(systemName: "stop.circle.fill")
-                                Text("停止全部 (\(processManager.activeSerials.count))")
+                                Text("\(t("stop_all")) (\(processManager.activeSerials.count))")
                             }
                             .font(.system(size: 11))
                         }
@@ -117,7 +118,7 @@ public struct MainView: View {
                     } else {
                         HStack(spacing: 4) {
                             Circle().fill(Color.green).frame(width: 6, height: 6)
-                            Text("ADB 守护进程运行中")
+                            Text(t("adb_daemon_running"))
                                 .font(.system(size: 10))
                                 .foregroundColor(.secondary)
                         }
@@ -128,7 +129,7 @@ public struct MainView: View {
                     Button(action: { isShowingLogSheet = true }) {
                         HStack(spacing: 3) {
                             Image(systemName: "terminal")
-                            Text("运行日志")
+                            Text(t("running_logs"))
                         }
                         .font(.system(size: 10))
                     }
@@ -153,15 +154,15 @@ public struct MainView: View {
                                     .font(.system(size: 11, design: .monospaced))
                                     .foregroundColor(.secondary)
                             }
-                            Text(dev.isMirroring ? "状态：正在投屏运行中" : "状态：就绪，可随时开启投屏")
+                            Text(dev.isMirroring ? t("status_mirroring") : t("status_ready"))
                                 .font(.system(size: 11))
                                 .foregroundColor(dev.isMirroring ? .green : .secondary)
                         }
                     } else {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("全局投屏默认配置")
+                            Text(t("global_default_config"))
                                 .font(.system(size: 16, weight: .bold))
-                            Text("从左侧选择设备以开始投屏")
+                            Text(t("select_device_hint"))
                                 .font(.system(size: 11))
                                 .foregroundColor(.secondary)
                         }
@@ -175,11 +176,27 @@ public struct MainView: View {
                         }) {
                             HStack(spacing: 4) {
                                 Image(systemName: "dock.rectangle")
-                                Text("显示悬浮控制条")
+                                Text(t("show_floating_toolbar"))
                             }
                         }
                         .buttonStyle(.bordered)
                     }
+                    
+                    // 🌐 多语言切换原生下拉选择器（与设置面板中的 Picker 完全一致的原生样式）
+                    HStack(spacing: 4) {
+                        Image(systemName: "globe")
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary)
+                        
+                        Picker("", selection: $langManager.selectedLanguage) {
+                            ForEach(AppLanguage.allCases) { lang in
+                                Text(lang.displayName).tag(lang)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .frame(width: 110)
+                    }
+                    .help(t("language"))
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
@@ -201,7 +218,7 @@ public struct MainView: View {
                             HStack(spacing: 8) {
                                 Image(systemName: dev.isMirroring ? "stop.circle.fill" : "play.circle.fill")
                                     .font(.system(size: 16))
-                                Text(dev.isMirroring ? "停止当前投屏" : "立即启动投屏 (scrcpy)")
+                                Text(dev.isMirroring ? t("stop_mirroring") : t("start_mirroring"))
                                     .font(.system(size: 14, weight: .semibold))
                             }
                             .frame(maxWidth: .infinity)
@@ -211,7 +228,7 @@ public struct MainView: View {
                         .tint(dev.isMirroring ? .red : .accentColor)
                         .disabled(!dev.state.isUsable)
                     } else {
-                        Text("请在左侧选择或连接一台 Android 设备")
+                        Text(t("please_select_device"))
                             .font(.system(size: 13))
                             .foregroundColor(.secondary)
                             .frame(maxWidth: .infinity)
@@ -260,24 +277,24 @@ public struct MainView: View {
                 .font(.system(size: 36))
                 .foregroundColor(.secondary)
             
-            Text("未检测到 Android 设备")
+            Text(t("no_device_detected"))
                 .font(.headline)
             
             VStack(alignment: .leading, spacing: 4) {
-                Text("连接排查小建议：")
+                Text(t("troubleshooting_title"))
                     .font(.caption)
                     .fontWeight(.bold)
-                Text("1. 确保手机已通过 USB 数据线连接 Mac")
+                Text(t("troubleshooting_1"))
                     .font(.caption2)
-                Text("2. 在手机【设置 -> 关于手机】连击版本号开启开发者选项")
+                Text(t("troubleshooting_2"))
                     .font(.caption2)
-                Text("3. 在【开发者选项】中开启【USB 调试】并允许此电脑")
+                Text(t("troubleshooting_3"))
                     .font(.caption2)
             }
             .foregroundColor(.secondary)
             .padding(.horizontal, 20)
             
-            Button("无线连接设备...") {
+            Button(t("wireless_connect_action")) {
                 isShowingWirelessSheet = true
             }
             .buttonStyle(.bordered)

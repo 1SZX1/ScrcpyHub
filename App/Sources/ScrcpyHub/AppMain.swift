@@ -32,7 +32,7 @@ struct ScrcpyHubApp: App {
     
     var body: some Scene {
         // 主工作台窗口 (使用单例 Window 替代 WindowGroup，避免重复多开窗口)
-        Window("ScrcpyHub - macOS 原生投屏与设备管理中心", id: "main") {
+        Window(t("app_title"), id: "main") {
             MainView()
                 .frame(minWidth: 880, minHeight: 620)
         }

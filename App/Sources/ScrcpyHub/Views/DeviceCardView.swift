@@ -1,6 +1,7 @@
 import SwiftUI
 
 public struct DeviceCardView: View {
+    @ObservedObject private var langManager = LanguageManager.shared
     public let device: Device
     public let isSelected: Bool
     public let onSelect: () -> Void
@@ -60,7 +61,7 @@ public struct DeviceCardView: View {
                         Circle()
                             .fill(Color.green)
                             .frame(width: 6, height: 6)
-                        Text("投屏中")
+                        Text(t("mirroring_badge"))
                             .font(.system(size: 10, weight: .semibold))
                             .foregroundColor(.green)
                     }
@@ -76,7 +77,7 @@ public struct DeviceCardView: View {
                 // 电量
                 if let battery = device.batteryLevel {
                     Label {
-                        Text("\(battery)%" + (device.isCharging == true ? " (充电中)" : ""))
+                        Text("\(battery)%" + (device.isCharging == true ? " (\(t("battery_charging")))" : ""))
                             .font(.system(size: 10))
                     } icon: {
                         Image(systemName: device.isCharging == true ? "bolt.fill" : "battery.75")
@@ -125,7 +126,7 @@ public struct DeviceCardView: View {
                 Button(action: onToggleMirror) {
                     HStack(spacing: 4) {
                         Image(systemName: device.isMirroring ? "stop.fill" : "play.fill")
-                        Text(device.isMirroring ? "停止投屏" : "启动投屏")
+                        Text(device.isMirroring ? t("stop_mirroring") : t("start_mirroring"))
                     }
                     .font(.system(size: 11, weight: .medium))
                     .frame(maxWidth: .infinity)
@@ -144,13 +145,13 @@ public struct DeviceCardView: View {
                             } else {
                                 Image(systemName: "wifi")
                             }
-                            Text("一键无线")
+                            Text(t("one_click_wireless"))
                         }
                         .font(.system(size: 11))
                     }
                     .buttonStyle(.bordered)
                     .disabled(isSwitchingToWireless)
-                    .help("自动读取手机局域网 IP 并建立无线 ADB 调试连接")
+                    .help(t("one_click_wireless"))
                 }
                 
                 // 控制条唤起
@@ -162,7 +163,7 @@ public struct DeviceCardView: View {
                             .font(.system(size: 11))
                     }
                     .buttonStyle(.bordered)
-                    .help("呼出悬浮快捷控制条")
+                    .help(t("show_floating_toolbar"))
                 }
             }
             

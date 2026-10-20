@@ -17,6 +17,30 @@ public struct PresetProfile: Identifiable, Equatable, Codable {
         self.isCustom = isCustom
     }
     
+    public var localizedTitle: String {
+        if isCustom { return title }
+        switch id {
+        case "standard": return t("preset_balanced_title")
+        case "low_latency": return t("preset_gaming_title")
+        case "high_quality": return t("preset_presentation_title")
+        case "office_stealth": return t("preset_stealth_title")
+        case "wireless_stable": return t("preset_wifi_title")
+        default: return title
+        }
+    }
+    
+    public var localizedSubtitle: String {
+        if isCustom { return subtitle }
+        switch id {
+        case "standard": return t("preset_balanced_sub")
+        case "low_latency": return t("preset_gaming_sub")
+        case "high_quality": return t("preset_presentation_sub")
+        case "office_stealth": return t("preset_stealth_sub")
+        case "wireless_stable": return t("preset_wifi_sub")
+        default: return subtitle
+        }
+    }
+    
     public static var builtInPresets: [PresetProfile] {
         [
             PresetProfile(

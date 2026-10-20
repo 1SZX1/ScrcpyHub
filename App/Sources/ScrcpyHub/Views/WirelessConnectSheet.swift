@@ -2,6 +2,7 @@ import SwiftUI
 import AppKit
 
 public struct WirelessConnectSheet: View {
+    @ObservedObject private var langManager = LanguageManager.shared
     @Environment(\.dismiss) private var dismiss
     
     // 默认展示 6 位配对码配对
@@ -31,7 +32,7 @@ public struct WirelessConnectSheet: View {
                 Image(systemName: "wifi")
                     .font(.title2)
                     .foregroundColor(.accentColor)
-                Text("无线 ADB 连接向导")
+                Text(t("wireless_adb_wizard_title"))
                     .font(.headline)
                 Spacer()
                 Button(action: { dismiss() }) {
@@ -45,8 +46,8 @@ public struct WirelessConnectSheet: View {
             
             // 模式切换
             Picker("", selection: $selectedTab) {
-                Text("🔢 6 位配对码 (Android 11+)").tag(0)
-                Text("⚡️ 局域网直连 (默认 5555)").tag(1)
+                Text(t("tab_pairing_code")).tag(0)
+                Text(t("tab_direct_ip")).tag(1)
             }
             .pickerStyle(.segmented)
             
@@ -62,30 +63,30 @@ public struct WirelessConnectSheet: View {
             Spacer(minLength: 0)
         }
         .padding(20)
-        .frame(width: 460, height: 290)
+        .frame(width: 480, height: 300)
     }
     
     // MARK: - 6 位配对码配对视图 (Android 11+)
     private var manualPairView: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("在手机【开发者选项 -> 无线调试 -> 使用配对码配对设备】弹窗中查看：")
+            Text(t("pairing_code_guide_title"))
                 .font(.caption)
                 .foregroundColor(.secondary)
             
             HStack {
-                TextField("配对 IP (例如 192.168.31.142)", text: $pairAddress)
+                TextField(t("pair_ip_placeholder"), text: $pairAddress)
                     .textFieldStyle(.roundedBorder)
                 
                 Text(":")
                     .font(.headline)
                     .foregroundColor(.secondary)
                 
-                TextField("端口", text: $pairPort)
+                TextField(t("port"), text: $pairPort)
                     .textFieldStyle(.roundedBorder)
                     .frame(width: 80)
             }
             
-            TextField("6 位配对验证码 (例如 849201)", text: $pairCode)
+            TextField(t("pairing_code_placeholder"), text: $pairCode)
                 .textFieldStyle(.roundedBorder)
             
             Button(action: performPairConnect) {
@@ -96,7 +97,7 @@ public struct WirelessConnectSheet: View {
                     } else {
                         Image(systemName: "bolt.fill")
                     }
-                    Text("立即配对并连接")
+                    Text(t("pair_and_connect_action"))
                 }
                 .frame(maxWidth: .infinity)
             }
@@ -121,12 +122,12 @@ public struct WirelessConnectSheet: View {
     // MARK: - 局域网直连视图
     private var directConnectView: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("输入手机局域网 IP 地址及端口（需先在手机端通过有线或终端开启 5555 端口）：")
+            Text(t("direct_ip_guide_title"))
                 .font(.caption)
                 .foregroundColor(.secondary)
             
             HStack {
-                TextField("例如: 192.168.31.142", text: $directAddress)
+                TextField(langManager.isChinese ? "例如: 192.168.31.142" : "e.g.: 192.168.31.142", text: $directAddress)
                     .textFieldStyle(.roundedBorder)
                 
                 Text(":")
@@ -146,7 +147,7 @@ public struct WirelessConnectSheet: View {
                     } else {
                         Image(systemName: "link")
                     }
-                    Text("立即连接")
+                    Text(t("connect_now_action"))
                 }
                 .frame(maxWidth: .infinity)
             }
@@ -172,7 +173,7 @@ public struct WirelessConnectSheet: View {
     private func performDirectConnect() {
         let addr = "\(directAddress.trimmingCharacters(in: .whitespaces)):\(directPort.trimmingCharacters(in: .whitespaces))"
         isDirectConnecting = true
-        directStatus = "正在连接 \(addr)..."
+        directStatus = "\(t("connecting_to")) \(addr)..."
         isDirectSuccess = false
         
         Task {
@@ -182,7 +183,7 @@ public struct WirelessConnectSheet: View {
                 switch res {
                 case .success(let msg):
                     isDirectSuccess = true
-                    directStatus = "连接成功！\(msg)"
+                    directStatus = "\(t("connect_success"))\(msg)"
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
                         dismiss()
                     }
@@ -202,7 +203,7 @@ public struct WirelessConnectSheet: View {
         let code = pairCode.trimmingCharacters(in: .whitespaces)
         
         isPairConnecting = true
-        pairStatus = "正在向 \(addr) 发起安全配对..."
+        pairStatus = "\(t("pairing_with")) \(addr)..."
         isPairSuccess = false
         
         Task {
@@ -211,7 +212,7 @@ public struct WirelessConnectSheet: View {
                 switch res {
                 case .success(let msg):
                     isPairSuccess = true
-                    pairStatus = "配对成功！正在建立调试连接..."
+                    pairStatus = t("pair_success_connecting")
                     Task {
                         let services = await ADBService.shared.getMdnsServices()
                         var connAddr: String? = nil
@@ -228,7 +229,7 @@ public struct WirelessConnectSheet: View {
                         
                         await MainActor.run {
                             isPairConnecting = false
-                            pairStatus = "已成功加入设备池！\(msg)"
+                            pairStatus = "\(t("pair_success_joined"))\(msg)"
                             ADBService.shared.refreshDevices(isManual: true)
                             DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
                                 dismiss()
@@ -238,7 +239,7 @@ public struct WirelessConnectSheet: View {
                 case .failure(let err):
                     isPairConnecting = false
                     isPairSuccess = false
-                    pairStatus = "配对失败: \(err.localizedDescription)"
+                    pairStatus = "\(t("pair_failed"))\(err.localizedDescription)"
                 }
             }
         }

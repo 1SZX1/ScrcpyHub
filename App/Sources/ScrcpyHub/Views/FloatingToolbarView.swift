@@ -2,6 +2,7 @@ import SwiftUI
 import AppKit
 
 public struct FloatingToolbarView: View {
+    @ObservedObject private var langManager = LanguageManager.shared
     public let device: Device
     @State private var toastMessage: String? = nil
     @State private var isShowingToast: Bool = false
@@ -43,6 +44,7 @@ public struct FloatingToolbarView: View {
                             .foregroundColor(.secondary)
                     }
                     .buttonStyle(.plain)
+                    .help(t("close_dock"))
                 }
             }
             .padding(.horizontal, 10)
@@ -53,42 +55,42 @@ public struct FloatingToolbarView: View {
             // 实体按键区
             HStack(spacing: 12) {
                 // 返回
-                ToolbarIconButton(icon: "chevron.backward", tooltip: "返回 (Back)") {
+                ToolbarIconButton(icon: "chevron.backward", tooltip: t("key_back")) {
                     ADBService.shared.sendKeyevent(serial: device.serial, keycode: 4)
                 }
                 
                 // 主页
-                ToolbarIconButton(icon: "circle.circle", tooltip: "主屏幕 (Home)") {
+                ToolbarIconButton(icon: "circle.circle", tooltip: t("key_home")) {
                     ADBService.shared.sendKeyevent(serial: device.serial, keycode: 3)
                 }
                 
                 // 多任务
-                ToolbarIconButton(icon: "square.stack.3d.up", tooltip: "最近任务 (Recents)") {
+                ToolbarIconButton(icon: "square.stack.3d.up", tooltip: t("key_recents")) {
                     ADBService.shared.sendKeyevent(serial: device.serial, keycode: 187)
                 }
                 
                 // 音量减
-                ToolbarIconButton(icon: "speaker.minus", tooltip: "音量 -") {
+                ToolbarIconButton(icon: "speaker.minus", tooltip: t("key_vol_down")) {
                     ADBService.shared.sendKeyevent(serial: device.serial, keycode: 25)
                 }
                 
                 // 音量加
-                ToolbarIconButton(icon: "speaker.plus", tooltip: "音量 +") {
+                ToolbarIconButton(icon: "speaker.plus", tooltip: t("key_vol_up")) {
                     ADBService.shared.sendKeyevent(serial: device.serial, keycode: 24)
                 }
                 
                 // 电源 / 息屏唤醒
-                ToolbarIconButton(icon: "power", tooltip: "电源键 / 点亮息屏") {
+                ToolbarIconButton(icon: "power", tooltip: t("key_power")) {
                     ADBService.shared.sendKeyevent(serial: device.serial, keycode: 26)
                 }
                 
                 // 通知栏
-                ToolbarIconButton(icon: "bell", tooltip: "下拉通知栏") {
+                ToolbarIconButton(icon: "bell", tooltip: t("key_notifications")) {
                     ADBService.shared.expandNotifications(serial: device.serial)
                 }
                 
                 // 截屏
-                ToolbarIconButton(icon: "camera", tooltip: "屏幕截图 (存至下载目录)") {
+                ToolbarIconButton(icon: "camera", tooltip: t("key_screenshot")) {
                     triggerScreenshot()
                 }
             }
@@ -98,7 +100,7 @@ public struct FloatingToolbarView: View {
             HStack(spacing: 4) {
                 Image(systemName: "arrow.down.doc")
                     .font(.system(size: 10))
-                Text("拖入 APK 安装或文件直传")
+                Text(t("drag_apk_file_hint"))
                     .font(.system(size: 10))
             }
             .foregroundColor(.secondary)
@@ -138,16 +140,16 @@ public struct FloatingToolbarView: View {
     }
     
     private func triggerScreenshot() {
-        showToast("正在截屏...")
+        showToast(langManager.isChinese ? "正在截屏..." : "Taking screenshot...")
         Task {
             let res = await ADBService.shared.takeScreenshot(serial: device.serial)
             await MainActor.run {
                 switch res {
                 case .success(let url):
-                    showToast("截屏已保存: \(url.lastPathComponent)")
+                    showToast((langManager.isChinese ? "截屏已保存: " : "Saved: ") + url.lastPathComponent)
                     NSWorkspace.shared.activateFileViewerSelecting([url])
                 case .failure(let err):
-                    showToast("截屏失败: \(err.localizedDescription)")
+                    showToast((langManager.isChinese ? "截屏失败: " : "Screenshot failed: ") + err.localizedDescription)
                 }
             }
         }
@@ -161,18 +163,18 @@ public struct FloatingToolbarView: View {
                 
                 Task { @MainActor in
                     if url.pathExtension.lowercased() == "apk" {
-                        self.showToast("正在安装 APK: \(url.lastPathComponent)...")
+                        self.showToast((self.langManager.isChinese ? "正在安装 APK: " : "Installing APK: ") + url.lastPathComponent)
                         let res = await ADBService.shared.installApk(serial: self.device.serial, fileUrl: url)
                         switch res {
                         case .success(let msg): self.showToast(msg)
-                        case .failure(let err): self.showToast("安装失败: \(err.localizedDescription)")
+                        case .failure(let err): self.showToast((self.langManager.isChinese ? "安装失败: " : "Install failed: ") + err.localizedDescription)
                         }
                     } else {
-                        self.showToast("正在传输文件: \(url.lastPathComponent)...")
+                        self.showToast((self.langManager.isChinese ? "正在传输文件: " : "Pushing file: ") + url.lastPathComponent)
                         let res = await ADBService.shared.pushFile(serial: self.device.serial, fileUrl: url)
                         switch res {
                         case .success(let msg): self.showToast(msg)
-                        case .failure(let err): self.showToast("传输失败: \(err.localizedDescription)")
+                        case .failure(let err): self.showToast((self.langManager.isChinese ? "传输失败: " : "Push failed: ") + err.localizedDescription)
                         }
                     }
                 }
