@@ -39,9 +39,10 @@
   - **Android 11+ 6-Digit Pairing Wizard**: True wireless pairing without requiring USB cables. Pair once and connect anytime.
   - **Always-Present Wireless Entry**: Quick add-device action at the bottom of the device list even when devices are already connected.
   - Supports concurrent multi-window mirroring with independent configs.
-- **🎯 Custom Preset Profiles**:
-  - 5 built-in presets: Balanced (Default), Ultra Low Latency (Gaming), Ultra HD (Presentation), Stealth (Screen-off), and Wi-Fi Anti-Jitter.
-  - Save any customized parameters as custom profiles with customized icons and titles, persistently stored in local JSON.
+- **🎯 Preset Profiles & Global Default Configuration**:
+  - **5 Built-in Presets**: Balanced (Default), Ultra Low Latency (Gaming), Ultra HD (Presentation), Stealth (Screen-off), and Wi-Fi Anti-Jitter.
+  - **Custom Profiles**: Save any customized parameters as custom profiles with customized icons and titles, persistently stored in local JSON.
+  - **Set as Global Default**: One-click save current settings as application defaults for startup and menu bar launches. Restore factory defaults anytime.
   - **Adaptive Grid Layout**: Responsive card arrangement that wraps smoothly without horizontal scrollbars.
 - **🚀 Built with the Latest Core Engines**: Bundled with official **scrcpy 5.0.1** (SDL 3.4.18 + libavcodec 63) and **ADB 37.0.1**.
 
@@ -59,7 +60,7 @@ The project follows a clean, decoupled modular architecture. Binary dependencies
 ├── App/                             # Swift 6 desktop application source (SPM)
 │   ├── Package.swift                # SPM dependency configuration
 │   ├── Sources/                     # App logic (Models, Services, Views, Utils)
-│   └── Resources/                   # App assets (Info.plist, icon.png)
+│   └── Resources/                   # App assets (icon.png)
 ├── bin/                             # Bundled scrcpy & adb binaries (git-ignored)
 │   └── .gitkeep
 ├── docs/                            # Documentation and assets
@@ -76,53 +77,79 @@ The project follows a clean, decoupled modular architecture. Binary dependencies
 
 ---
 
-## 🛠️ Quick Start
+## 🛠️ Installation & Setup
 
 ### System Requirements
-- macOS 13.0 (Ventura) or later
-- Apple Silicon (M1 / M2 / M3 / M4 family chips)
-- Android device: Enable **Developer Options > USB Debugging** (For wireless, connect to the same Wi-Fi)
-
-### Option 1: Download Pre-built Release (Recommended)
-Download the latest **`ScrcpyHub-macOS-arm64.dmg`** from the [GitHub Releases](https://github.com/) page, open it, and drag `ScrcpyHub.app` into your `Applications` folder.
-
-### Option 2: Build from Source
-Clone the repository and run the build script in the root directory:
-
-```bash
-# Clone the repository
-git clone <your-repo-url>
-cd ScrcpyHub
-
-# Build DMG and ZIP distribution packages (auto-downloads tools and compiles Swift)
-./scripts/create_dmg.sh
-```
-
-The compiled **`ScrcpyHub.app`** and DMG image will be ready under `dist/` and the project root.
+- **macOS**: macOS 13.0 (Ventura) or later
+- **Hardware Architecture**: Apple Silicon (M1 / M2 / M3 / M4 family chips)
+- **Android Device**: Enable **Settings > Developer options > USB Debugging** (For wireless, connect to the same Wi-Fi)
 
 ---
 
-## 🧑‍💻 Development
+### Method 1: Download Pre-built Release (Recommended)
 
-If you wish to customize features or develop locally:
+1. Go to the repository's **Releases** page and download the latest **`ScrcpyHub-macOS-arm64.dmg`**;
+2. Double-click to open the DMG image and drag **`ScrcpyHub.app`** into your **`Applications`** folder;
+3. Open **ScrcpyHub** from your Applications folder.
 
-1. **Run directly from terminal**:
+> [!TIP]
+> **Encountered "App is damaged and can't be opened" or Gatekeeper warning?**
+> Since this open-source build does not include an Apple Developer ID paid certificate signature, run the following command in macOS Terminal to bypass Gatekeeper quarantine:
+> ```bash
+> xattr -cr /Applications/ScrcpyHub.app
+> ```
+> Alternatively, navigate to **System Settings > Privacy & Security**, scroll down, and click **Open Anyway**.
+
+---
+
+### Method 2: Build from Source
+
+If you want to build locally or customize the app:
+
+1. **Prerequisites**: Ensure Xcode 15+ or Swift 6 command-line tools are installed (`xcode-select --install`).
+2. **Clone and Build**:
    ```bash
-   cd App
-   swift run
-   ```
+   git clone https://github.com/<your-username>/ScrcpyHub.git
+   cd ScrcpyHub
 
-2. **Open with Xcode**:
-   Double click `App/Package.swift` or run:
-   ```bash
-   xed App
-   ```
-   Enjoy Swift code completion, SwiftUI Canvas previews, and debugging.
-
-3. **Re-package release**:
-   ```bash
+   # Auto-downloads dependencies, compiles Swift code, and generates DMG & App bundle
    ./scripts/create_dmg.sh
    ```
+3. Once completed, find **`ScrcpyHub.app`** and **`ScrcpyHub-macOS-arm64.dmg`** in `dist/` and the root folder.
+
+---
+
+## 🎮 Quick Usage Guide
+
+1. **Connect Device**:
+   - **USB**: Plug in your phone via USB and grant debugging permission. ScrcpyHub detects it in sub-seconds.
+   - **One-Click Wireless**: Click **"一键无线" (One-Click Wireless)** on the device card, then unplug the USB cable to enjoy wireless mirroring.
+   - **Pairing Code**: Click **"+ 连接新无线设备..." (+ Connect Wireless Device)** at the bottom of the device list, input the IP, port, and 6-digit code shown under your phone's Wireless Debugging pairing dialog.
+2. **Start Mirroring**:
+   - Select your target device on the left and choose a preset profile on the right;
+   - Click the big **"立即启动投屏 (Start Mirroring)"** button at the bottom;
+   - The floating HUD capsule will appear on your desktop for easy navigation, screen capture, and APK installations.
+
+---
+
+## 🧑‍💻 Local Development
+
+- **Run directly from terminal**:
+  ```bash
+  cd App
+  swift run
+  ```
+- **Open with Xcode**:
+  Double click `App/Package.swift` or run:
+  ```bash
+  xed App
+  ```
+  Enjoy Swift code completion, SwiftUI Canvas previews, and debugging.
+- **Rebuild bundles**:
+  ```bash
+  ./scripts/build_app.sh       # Fast build ScrcpyHub.app
+  ./scripts/create_dmg.sh      # Package DMG and ZIP releases
+  ```
 
 ---
 
