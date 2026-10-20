@@ -1,0 +1,33 @@
+# macOS 系统文件
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon\r\r
+._*
+.Spotlight-V100
+.Trashes
+
+# 应用程序打包成果物 (构建生成)
+*.app/
+*.app
+dist/
+build/
+
+# Swift Package Manager & Xcode 派生文件
+.build/
+App/.build/
+Packages/
+Package.pins
+.swiftpm/
+xcuserdata/
+DerivedData/
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+
+# 底层第三方二进制依赖 (请通过 scripts/setup_binaries.sh 下载)
+bin/*
+!bin/.gitkeep
+
+# 临时与日志文件
+*.log
+/tmp/

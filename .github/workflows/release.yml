@@ -1,0 +1,62 @@
+name: Build and Release ScrcpyHub
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: '是否发布到 GitHub Releases'
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build macOS Apple Silicon App
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Binaries
+        run: |
+          chmod +x scripts/*.sh
+          ./scripts/setup_binaries.sh
+
+      - name: Build Application Bundle
+        run: |
+          ./scripts/build_app.sh
+
+      - name: Package DMG and ZIP
+        run: |
+          ./scripts/create_dmg.sh
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ScrcpyHub-macOS-arm64
+          path: |
+            dist/*.dmg
+            dist/*.zip
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.create_release == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/ScrcpyHub-macOS-arm64.dmg
+            dist/ScrcpyHub-macOS-arm64.zip
+          draft: false
+          prerelease: false
+          generate_release_notes: true
