@@ -8,6 +8,19 @@ public struct FloatingToolbarView: View {
     @State private var isShowingToast: Bool = false
     @State private var isDropTargeted: Bool = false
     
+    struct TransferState: Equatable {
+        var fileName: String
+        var currentIndex: Int
+        var totalCount: Int
+        var progress: Double?
+        var isApk: Bool
+    }
+    
+    @State private var currentTransfer: TransferState? = nil
+    @State private var activeTransferProcess: Process? = nil
+    @State private var isTransferCancelled: Bool = false
+    @State private var transferTask: Task<Void, Never>? = nil
+    
     public var body: some View {
         VStack(spacing: 8) {
             // 顶部抓手与设备微型状态 (可拖动区域)
@@ -96,24 +109,82 @@ public struct FloatingToolbarView: View {
             }
             .padding(.horizontal, 10)
             
-            // 快捷拖拽安装/传输提示条
-            HStack(spacing: 4) {
-                Image(systemName: "arrow.down.doc")
-                    .font(.system(size: 10))
-                Text(t("drag_apk_file_hint"))
-                    .font(.system(size: 10))
-            }
-            .foregroundColor(.secondary)
-            .padding(.vertical, 4)
-            .padding(.horizontal, 8)
-            .frame(maxWidth: .infinity)
-            .background(isDropTargeted ? Color.accentColor.opacity(0.2) : Color.primary.opacity(0.04))
-            .cornerRadius(6)
-            .padding(.horizontal, 8)
-            .padding(.bottom, 6)
-            .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
-                handleDroppedFiles(providers: providers)
-                return true
+            // 快捷拖拽安装/传输提示条 或 实时进度条
+            if let transfer = currentTransfer {
+                HStack(spacing: 8) {
+                    Image(systemName: transfer.isApk ? "arrow.down.app.fill" : "doc.fill")
+                        .font(.system(size: 11))
+                        .foregroundColor(.accentColor)
+                    
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack {
+                            let label = transfer.totalCount > 1
+                                ? "[\(transfer.currentIndex)/\(transfer.totalCount)] \(transfer.fileName)"
+                                : transfer.fileName
+                            Text(label)
+                                .font(.system(size: 10, weight: .medium))
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                            
+                            Spacer()
+                            
+                            if let p = transfer.progress {
+                                Text("\(Int(p * 100))%")
+                                    .font(.system(size: 9, design: .monospaced))
+                                    .foregroundColor(.secondary)
+                            } else {
+                                Text(t("installing_apk"))
+                                    .font(.system(size: 9))
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        
+                        if let p = transfer.progress {
+                            ProgressView(value: p, total: 1.0)
+                                .progressViewStyle(.linear)
+                                .controlSize(.mini)
+                                .animation(.linear(duration: 0.15), value: p)
+                        } else {
+                            ProgressView()
+                                .progressViewStyle(.linear)
+                                .controlSize(.mini)
+                        }
+                    }
+                    
+                    Button(action: cancelCurrentTransfer) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .help(t("cancel_transfer"))
+                }
+                .padding(.vertical, 5)
+                .padding(.horizontal, 8)
+                .frame(maxWidth: .infinity)
+                .background(Color.primary.opacity(0.06))
+                .cornerRadius(6)
+                .padding(.horizontal, 8)
+                .padding(.bottom, 6)
+            } else {
+                HStack(spacing: 4) {
+                    Image(systemName: "arrow.down.doc")
+                        .font(.system(size: 10))
+                    Text(t("drag_apk_file_hint"))
+                        .font(.system(size: 10))
+                }
+                .foregroundColor(.secondary)
+                .padding(.vertical, 4)
+                .padding(.horizontal, 8)
+                .frame(maxWidth: .infinity)
+                .background(isDropTargeted ? Color.accentColor.opacity(0.2) : Color.primary.opacity(0.04))
+                .cornerRadius(6)
+                .padding(.horizontal, 8)
+                .padding(.bottom, 6)
+                .onDrop(of: [.fileURL], isTargeted: $isDropTargeted) { providers in
+                    handleDroppedFiles(providers: providers)
+                    return true
+                }
             }
             
             // Toast 提示
@@ -156,30 +227,101 @@ public struct FloatingToolbarView: View {
     }
     
     private func handleDroppedFiles(providers: [NSItemProvider]) {
+        let group = DispatchGroup()
+        var loadedUrls: [URL] = []
+        let lock = NSLock()
+        
         for provider in providers {
+            group.enter()
             provider.loadItem(forTypeIdentifier: "public.file-url", options: nil) { item, _ in
+                defer { group.leave() }
                 guard let data = item as? Data,
                       let url = URL(dataRepresentation: data, relativeTo: nil) else { return }
+                lock.lock()
+                loadedUrls.append(url)
+                lock.unlock()
+            }
+        }
+        
+        group.notify(queue: .main) {
+            guard !loadedUrls.isEmpty else { return }
+            self.startTransferQueue(urls: loadedUrls)
+        }
+    }
+    
+    private func startTransferQueue(urls: [URL]) {
+        transferTask?.cancel()
+        isTransferCancelled = false
+        
+        transferTask = Task { @MainActor in
+            let total = urls.count
+            for (idx, url) in urls.enumerated() {
+                if Task.isCancelled || isTransferCancelled { break }
                 
-                Task { @MainActor in
-                    if url.pathExtension.lowercased() == "apk" {
-                        self.showToast((self.langManager.isChinese ? "正在安装 APK: " : "Installing APK: ") + url.lastPathComponent)
-                        let res = await ADBService.shared.installApk(serial: self.device.serial, fileUrl: url)
-                        switch res {
-                        case .success(let msg): self.showToast(msg)
-                        case .failure(let err): self.showToast((self.langManager.isChinese ? "安装失败: " : "Install failed: ") + err.localizedDescription)
+                let isApk = url.pathExtension.lowercased() == "apk"
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    currentTransfer = TransferState(
+                        fileName: url.lastPathComponent,
+                        currentIndex: idx + 1,
+                        totalCount: total,
+                        progress: isApk ? nil : 0.0,
+                        isApk: isApk
+                    )
+                }
+                
+                if isApk {
+                    let res = await ADBService.shared.installApkWithProgress(
+                        serial: device.serial,
+                        fileUrl: url,
+                        onProcessReady: { proc in
+                            DispatchQueue.main.async { self.activeTransferProcess = proc }
                         }
-                    } else {
-                        self.showToast((self.langManager.isChinese ? "正在传输文件: " : "Pushing file: ") + url.lastPathComponent)
-                        let res = await ADBService.shared.pushFile(serial: self.device.serial, fileUrl: url)
-                        switch res {
-                        case .success(let msg): self.showToast(msg)
-                        case .failure(let err): self.showToast((self.langManager.isChinese ? "传输失败: " : "Push failed: ") + err.localizedDescription)
+                    )
+                    guard !Task.isCancelled && !isTransferCancelled else { break }
+                    switch res {
+                    case .success(let msg): showToast(msg)
+                    case .failure(let err): showToast(err.localizedDescription)
+                    }
+                } else {
+                    let res = await ADBService.shared.pushFileWithProgress(
+                        serial: device.serial,
+                        fileUrl: url,
+                        onProgress: { prog in
+                            DispatchQueue.main.async {
+                                if var cur = self.currentTransfer, !self.isTransferCancelled {
+                                    cur.progress = prog
+                                    self.currentTransfer = cur
+                                }
+                            }
+                        },
+                        onProcessReady: { proc in
+                            DispatchQueue.main.async { self.activeTransferProcess = proc }
                         }
+                    )
+                    guard !Task.isCancelled && !isTransferCancelled else { break }
+                    switch res {
+                    case .success(let msg): showToast(msg)
+                    case .failure(let err): showToast(err.localizedDescription)
                     }
                 }
             }
+            
+            withAnimation(.easeInOut(duration: 0.25)) {
+                self.currentTransfer = nil
+                self.activeTransferProcess = nil
+            }
         }
+    }
+    
+    private func cancelCurrentTransfer() {
+        isTransferCancelled = true
+        transferTask?.cancel()
+        activeTransferProcess?.terminate()
+        activeTransferProcess = nil
+        withAnimation(.easeInOut(duration: 0.2)) {
+            currentTransfer = nil
+        }
+        showToast(t("transfer_cancelled"))
     }
     
     private func showToast(_ text: String) {

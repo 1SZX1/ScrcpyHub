@@ -214,6 +214,13 @@ public final class LanguageManager: ObservableObject {
         "key_notifications": ["zh": "下拉通知栏", "en": "Expand Notifications"],
         "key_screenshot": ["zh": "无损截屏并存入下载", "en": "Capture Screenshot to Downloads"],
         "close_dock": ["zh": "收起悬浮条", "en": "Hide HUD Bar"],
+        "cancel_transfer": ["zh": "取消传输", "en": "Cancel Transfer"],
+        "transfer_cancelled": ["zh": "已取消传输", "en": "Transfer cancelled"],
+        "transfer_failed": ["zh": "传输失败", "en": "Transfer failed"],
+        "install_failed": ["zh": "安装失败", "en": "Install failed"],
+        "installing_apk": ["zh": "安装中...", "en": "Installing..."],
+        "push_success": ["zh": "文件已成功推送到手机 Download 目录", "en": "File pushed to Download folder successfully"],
+        "install_success": ["zh": "应用安装成功！", "en": "App installed successfully!"],
 
         // MARK: 无线连接向导
         "wireless_adb_wizard_title": ["zh": "无线 ADB 连接向导", "en": "Wireless ADB Connection Wizard"],

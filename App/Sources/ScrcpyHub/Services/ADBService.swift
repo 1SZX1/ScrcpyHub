@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import Darwin
 
 @MainActor
 public final class ADBService: ObservableObject {
@@ -326,23 +327,136 @@ public final class ADBService: ObservableObject {
     
     /// 安装 APK 到手机
     public func installApk(serial: String, fileUrl: URL) async -> Result<String, Error> {
+        await installApkWithProgress(serial: serial, fileUrl: fileUrl, onProcessReady: nil)
+    }
+    
+    /// 安装 APK 到手机（支持外部中断取消）
+    public func installApkWithProgress(
+        serial: String,
+        fileUrl: URL,
+        onProcessReady: (@Sendable (Process) -> Void)? = nil
+    ) async -> Result<String, Error> {
         let adb = BinaryLocator.shared.adbPath()
-        let out = await Self.runCommand(executable: adb, arguments: ["-s", serial, "install", "-r", fileUrl.path])
-        if out.contains("Success") {
-            return .success("应用安装成功！")
-        } else {
-            return .failure(NSError(domain: "ADB", code: 7, userInfo: [NSLocalizedDescriptionKey: "安装失败: \(out)"]))
+        return await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                let process = Process()
+                process.executableURL = URL(fileURLWithPath: adb)
+                process.arguments = ["-s", serial, "install", "-r", fileUrl.path]
+                
+                var env = ProcessInfo.processInfo.environment
+                env["PATH"] = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:" + (env["PATH"] ?? "")
+                process.environment = env
+                
+                let pipe = Pipe()
+                process.standardOutput = pipe
+                process.standardError = pipe
+                
+                do {
+                    try process.run()
+                    onProcessReady?(process)
+                    
+                    let data = pipe.fileHandleForReading.readDataToEndOfFile()
+                    process.waitUntilExit()
+                    let out = String(data: data, encoding: .utf8) ?? ""
+                    
+                    if out.contains("Success") {
+                        continuation.resume(returning: .success(t("install_success")))
+                    } else if process.terminationReason == .uncaughtSignal {
+                        continuation.resume(returning: .failure(NSError(domain: "ADB", code: -1, userInfo: [NSLocalizedDescriptionKey: t("transfer_cancelled")])))
+                    } else {
+                        continuation.resume(returning: .failure(NSError(domain: "ADB", code: 7, userInfo: [NSLocalizedDescriptionKey: "\(t("install_failed")): \(out.trimmingCharacters(in: .whitespacesAndNewlines))"])))
+                    }
+                } catch {
+                    continuation.resume(returning: .failure(error))
+                }
+            }
         }
     }
     
     /// 推送文件到手机 Download 目录
     public func pushFile(serial: String, fileUrl: URL) async -> Result<String, Error> {
+        await pushFileWithProgress(serial: serial, fileUrl: fileUrl, onProgress: { _ in }, onProcessReady: nil)
+    }
+    
+    /// 推送文件到手机 Download 目录（支持实时百分比进度回调与外部中断取消）
+    public func pushFileWithProgress(
+        serial: String,
+        fileUrl: URL,
+        onProgress: @escaping @Sendable (Double) -> Void,
+        onProcessReady: (@Sendable (Process) -> Void)? = nil
+    ) async -> Result<String, Error> {
         let adb = BinaryLocator.shared.adbPath()
-        let out = await Self.runCommand(executable: adb, arguments: ["-s", serial, "push", fileUrl.path, "/sdcard/Download/"])
-        if !out.contains("error") {
-            return .success("文件已成功推送到手机 Download 目录")
-        } else {
-            return .failure(NSError(domain: "ADB", code: 8, userInfo: [NSLocalizedDescriptionKey: "传输失败: \(out)"]))
+        return await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                var ws = winsize(ws_row: 24, ws_col: 80, ws_xpixel: 0, ws_ypixel: 0)
+                var masterFd: Int32 = 0
+                var slaveFd: Int32 = 0
+                guard openpty(&masterFd, &slaveFd, nil, nil, &ws) == 0 else {
+                    continuation.resume(returning: .failure(NSError(domain: "ADB", code: 9, userInfo: [NSLocalizedDescriptionKey: "无法创建伪终端 PTY"])))
+                    return
+                }
+                
+                let process = Process()
+                process.executableURL = URL(fileURLWithPath: adb)
+                process.arguments = ["-s", serial, "push", fileUrl.path, "/sdcard/Download/"]
+                
+                var env = ProcessInfo.processInfo.environment
+                env["PATH"] = "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:" + (env["PATH"] ?? "")
+                env["TERM"] = "xterm-256color"
+                process.environment = env
+                
+                let slaveHandle = FileHandle(fileDescriptor: slaveFd, closeOnDealloc: true)
+                process.standardOutput = slaveHandle
+                process.standardError = slaveHandle
+                
+                do {
+                    try process.run()
+                    onProcessReady?(process)
+                    close(slaveFd)
+                    
+                    let masterHandle = FileHandle(fileDescriptor: masterFd, closeOnDealloc: true)
+                    var outputData = Data()
+                    var buffer = ""
+                    let regex = try? NSRegularExpression(pattern: #"\[\s*(\d+)%\]"#)
+                    
+                    while true {
+                        let chunk = masterHandle.availableData
+                        if chunk.isEmpty { break }
+                        outputData.append(chunk)
+                        if let str = String(data: chunk, encoding: .utf8) {
+                            buffer.append(str)
+                            if buffer.count > 512 {
+                                buffer = String(buffer.suffix(256))
+                            }
+                            let nsStr = buffer as NSString
+                            let matches = regex?.matches(in: buffer, range: NSRange(location: 0, length: nsStr.length)) ?? []
+                            if let last = matches.last, last.numberOfRanges > 1 {
+                                let percentStr = nsStr.substring(with: last.range(at: 1))
+                                if let val = Double(percentStr) {
+                                    onProgress(min(max(val / 100.0, 0.0), 1.0))
+                                }
+                            }
+                        }
+                    }
+                    
+                    process.waitUntilExit()
+                    close(masterFd)
+                    
+                    let out = String(data: outputData, encoding: .utf8) ?? ""
+                    if process.terminationStatus == 0 || out.contains("pushed") {
+                        onProgress(1.0)
+                        continuation.resume(returning: .success(t("push_success")))
+                    } else if process.terminationReason == .uncaughtSignal {
+                        continuation.resume(returning: .failure(NSError(domain: "ADB", code: -1, userInfo: [NSLocalizedDescriptionKey: t("transfer_cancelled")])))
+                    } else {
+                        continuation.resume(returning: .failure(NSError(domain: "ADB", code: 8, userInfo: [NSLocalizedDescriptionKey: "\(t("transfer_failed")): \(out.trimmingCharacters(in: .whitespacesAndNewlines))"])))
+                    }
+                } catch {
+                    close(masterFd)
+                    close(slaveFd)
+                    continuation.resume(returning: .failure(error))
+                }
+            }
         }
     }
     
